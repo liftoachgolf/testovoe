@@ -18,6 +18,7 @@ func NewSongRepository(db *sql.DB) SongRepository {
 
 type AddSongParams struct {
 	GroupName   string
+	SongId      int
 	SongName    string
 	Text        string
 	ReleaseDate string
@@ -27,9 +28,9 @@ type AddSongParams struct {
 // Добавление песни
 func (r *songRepository) AddSong(ctx context.Context, song AddSongParams) (int, error) {
 	var id int
-	query := `INSERT INTO songs (group_name, song_name, text, release_date, link ) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	query := `INSERT INTO songs (song_id, group_name, song_name, text, release_date, link ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
 
-	err := r.db.QueryRowContext(ctx, query, song.GroupName, song.SongName, song.Text, song.ReleaseDate, song.Link).Scan(&id)
+	err := r.db.QueryRowContext(ctx, query, song.SongId, song.GroupName, song.SongName, song.Text, song.ReleaseDate, song.Link).Scan(&id)
 	if err != nil {
 		return 0, err
 	}

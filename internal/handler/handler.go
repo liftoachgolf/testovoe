@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
-	"fmt"
 	geniusService "musPlayer/internal/serviceGenius" // Импортируем пакет для работы с Genius API
 	"musPlayer/internal/servicePostgres"
 	"net/http"
@@ -37,8 +35,9 @@ func (h *Handler) InitRoutes() *mux.Router {
 	{
 		songs := api.PathPrefix("/songs").Subrouter()
 		{
-			songs.HandleFunc("/", h.addSong).Methods(http.MethodGet)          // Путь для добавления песни
-			songs.HandleFunc("/search", h.searchSong).Methods(http.MethodGet) // Путь для поиска песни
+			songs.HandleFunc("/", h.addSong).Methods(http.MethodGet)                 // Путь для добавления песни
+			songs.HandleFunc("/search", h.searchSong).Methods(http.MethodPost)       // Изменено на POST для поиска песни
+			songs.HandleFunc("/filter", h.getFilteredSongs).Methods(http.MethodPost) // получения песен с фильтрацией
 		}
 
 		// Добавление маршрута для обработки callback
@@ -51,54 +50,4 @@ func (h *Handler) InitRoutes() *mux.Router {
 	}
 
 	return router
-}
-
-// Обработчик для callback
-func (h *Handler) callbackHandler(w http.ResponseWriter, r *http.Request) {
-	code := r.URL.Query().Get("code")
-	if code == "" {
-		http.Error(w, "Code is missing", http.StatusBadRequest)
-		return
-	}
-
-	// Получение токена доступа
-	if err := h.serviceGenius.GetAccessToken(code); err != nil {
-		http.Error(w, "Failed to obtain access token", http.StatusInternalServerError)
-		return
-	}
-
-	// Вывод токена на экран
-	response := map[string]string{
-		"access_token": h.serviceGenius.AccessToken,
-	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-	fmt.Fprintf(w, "Access token: %s", h.serviceGenius.AccessToken) // Также выводим на экран
-}
-
-// Обработчик для поиска песни
-func (h *Handler) searchSong(w http.ResponseWriter, r *http.Request) {
-	title := r.URL.Query().Get("title")
-	artist := r.URL.Query().Get("artist")
-
-	if title == "" && artist == "" {
-		http.Error(w, "Missing song title and artist", http.StatusBadRequest)
-		return
-	}
-
-	// Вызов метода для поиска песни по названию и артисту
-	song, err := h.serviceGenius.SearchSong(title, artist)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if song == nil {
-		http.Error(w, "Song not found", http.StatusNotFound)
-		return
-	}
-
-	// Возвращаем найденную песню
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(song)
 }

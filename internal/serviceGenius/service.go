@@ -81,7 +81,6 @@ func (g *GeniusService) GetAccessToken(code string) error {
 
 // SearchSong ищет песню по названию и заполняет структуру Song
 func (g *GeniusService) SearchSong(title, artist string) (*models.Song, error) {
-	// Формируем запрос, включая название и имя исполнителя
 	query := url.QueryEscape(title)
 	if artist != "" {
 		query += " " + url.QueryEscape(artist)
@@ -127,19 +126,18 @@ func (g *GeniusService) SearchSong(title, artist string) (*models.Song, error) {
 	}
 
 	songID := result.Response.Hits[0].Result.ID
-	songText, err := g.GetSongText(songID)
+	songText, err := g.GetSongText(result.Response.Hits[0].Result.URL)
 	if err != nil {
-		return nil, err // Обработка ошибки, если не удалось получить текст
+		return nil, err
 	}
 
-	// Заполнение структуры Song
 	song := &models.Song{
 		ID:          songID,
 		GroupName:   result.Response.Hits[0].Result.PrimaryArtist.Name,
 		SongName:    result.Response.Hits[0].Result.Title,
-		ReleaseDate: result.Response.Hits[0].Result.ReleaseDate, // Дата выхода
+		ReleaseDate: result.Response.Hits[0].Result.ReleaseDate,
 		Link:        result.Response.Hits[0].Result.URL,
-		Text:        songText, // Текст песни
+		Text:        songText,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
@@ -147,28 +145,34 @@ func (g *GeniusService) SearchSong(title, artist string) (*models.Song, error) {
 	return song, nil
 }
 
-// extractTextFromHTML извлекает текст из HTML
+// extractTextFromHTML извлекает текст из HTML, учитывая атрибут data-lyrics-container
 func extractTextFromHTML(htmlBody string) (string, error) {
 	doc, err := html.Parse(strings.NewReader(htmlBody))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("ошибка парсинга HTML: %v", err)
 	}
 
 	var text string
+	var found bool
 	var f func(*html.Node)
 	f = func(n *html.Node) {
+		// Проверка всех div на наличие нужного атрибута
 		if n.Type == html.ElementNode && n.Data == "div" {
 			for _, attr := range n.Attr {
-				if attr.Key == "class" && strings.Contains(attr.Val, "Lyrics__Container-sc-1ynbvzw-1") {
-					// Находим текст внутри div с нужным классом
+				if attr.Key == "data-lyrics-container" && attr.Val == "true" {
+					found = true
+					// Находим текст внутри нужного div
 					for c := n.FirstChild; c != nil; c = c.NextSibling {
 						if c.Type == html.TextNode {
-							text += c.Data + "\n" // Добавляем текст
+							line := strings.TrimSpace(c.Data) // Удаляем лишние пробелы
+							if line != "" {                   // Проверяем, что строка не пустая
+								text += line + "\n" // Добавляем текст
+							}
 						} else if c.Type == html.ElementNode && c.Data == "br" {
 							text += "\n" // Обрабатываем перенос строки
 						}
 					}
-					return // Выходим после нахождения нужного div
+					return // Останавливаемся, как только нашли нужный div
 				}
 			}
 		}
@@ -178,12 +182,25 @@ func extractTextFromHTML(htmlBody string) (string, error) {
 	}
 	f(doc)
 
+	// Если текст не найден, добавляем отладочный вывод
+	if !found {
+		return "", fmt.Errorf("не удалось найти элемент с data-lyrics-container")
+	}
+
+	if text == "" {
+		return "", fmt.Errorf("не удалось извлечь текст из найденного элемента")
+	}
+
+	// Удаляем лишние пробелы и пустые строки
+	text = strings.TrimSpace(text)
+	text = strings.ReplaceAll(text, "\n\n", "\n") // Убираем двойные переносы
+
 	return text, nil
 }
 
 // GetSongText получает текст песни по идентификатору песни
-func (g *GeniusService) GetSongText(songID int) (string, error) {
-	url := fmt.Sprintf("https://api.genius.com/songs/%d", songID)
+func (g *GeniusService) GetSongText(url string) (string, error) {
+	fmt.Print(url)
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Authorization", "Bearer "+g.AccessToken)
 
@@ -202,7 +219,6 @@ func (g *GeniusService) GetSongText(songID int) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
-	fmt.Println("Response body:", string(body)) // Отладочный вывод
 
 	songText, err := extractTextFromHTML(string(body))
 	if err != nil {

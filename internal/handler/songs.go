@@ -1,52 +1,113 @@
 package handler
 
 import (
+	"context"
+	"encoding/json"
+	postgresrepo "musPlayer/pkg/postgresRepo"
 	"net/http"
 )
 
+type SongRequest struct {
+	Title  string `json:"title"`
+	Artist string `json:"artist"`
+}
+
 func (h *Handler) addSong(w http.ResponseWriter, r *http.Request) {
-	// var req struct {
-	// 	Group string `json:"group"`
-	// 	Song  string `json:"song"`
-	// }
+	var songRequest SongRequest
 
-	// // Парсим JSON запрос
-	// if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-	// 	newErrorResponse(w, http.StatusBadRequest, "Invalid request body")
-	// 	return
-	// }
+	// Декодируем JSON из тела запроса
+	if err := json.NewDecoder(r.Body).Decode(&songRequest); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
 
-	// // Ищем трек по названию и исполнителю через Spotify API
-	// songs, err := h.serviceSpotify.SearchTrackByNameAndArtist(req.Song, req.Group)
-	// if err != nil {
-	// 	newErrorResponse(w, http.StatusInternalServerError, "Failed to search song")
-	// 	return
-	// }
+	if songRequest.Title == "" {
+		http.Error(w, "Missing song title", http.StatusBadRequest)
+		return
+	}
 
-	// if len(songs) == 0 {
-	// 	newErrorResponse(w, http.StatusNotFound, "Song not found")
-	// 	return
-	// }
+	// Вызов метода для поиска песни по названию и артисту
+	song, err := h.serviceGenius.SearchSong(songRequest.Title, songRequest.Artist)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-	// songs = []models.SpotySong{
-	// 	{ID: "1", SongName: "Test Song", Artist: "Test Artist"},
-	// }
-	// song := songs[0]
-	// var songForAdd = postgresrepo.AddSongParams{
-	// 	GroupName:   song.Artist,
-	// 	SongName:    song.SongName,
-	// 	Text:        "xdddddddddddddd",
-	// 	ReleaseDate: song.ReleaseDate,
-	// 	Link:        song.TrackURL,
-	// }
+	if song == nil {
+		http.Error(w, "Song not found", http.StatusNotFound)
+		return
+	}
 
-	// // Сохраняем трек в базе данных
-	// _, err = h.services.AddSong(context.Background(), songForAdd)
-	// if err != nil {
-	// 	newErrorResponse(w, http.StatusInternalServerError, "Failed to save song to database")
-	// 	return
-	// }
+	h.services.AddSong(context.Background(), postgresrepo.AddSongParams{
+		SongId:      song.ID,
+		GroupName:   song.GroupName,
+		SongName:    song.SongName,
+		Text:        song.Text,
+		Link:        song.Link,
+		ReleaseDate: song.ReleaseDate,
+	})
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(song)
+}
 
-	// // Возвращаем успешный ответ
-	// sendSuccessResponse(w, http.StatusCreated, map[string]string{"message": "Song added successfully"})
+func (h *Handler) searchSong(w http.ResponseWriter, r *http.Request) {
+	var songRequest SongRequest
+
+	// Декодируем JSON из тела запроса
+	if err := json.NewDecoder(r.Body).Decode(&songRequest); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if songRequest.Title == "" {
+		http.Error(w, "Missing song title", http.StatusBadRequest)
+		return
+	}
+
+	// Вызов метода для поиска песни по названию и артисту
+	song, err := h.serviceGenius.SearchSong(songRequest.Title, songRequest.Artist)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if song == nil {
+		http.Error(w, "Song not found", http.StatusNotFound)
+		return
+	}
+
+	// Возвращаем найденную песню
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(song)
+}
+
+type FilterParams struct {
+	Filter string `json:"filter"`
+	Limit  int    `json:"limit"`
+	Offset int    `json:"offset"`
+}
+
+func (h *Handler) getFilteredSongs(w http.ResponseWriter, r *http.Request) {
+	var params FilterParams
+
+	// Декодируем JSON-запрос в структуру
+	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	// Получаем контекст и вызываем метод сервиса
+	ctx := r.Context()
+	songs, err := h.services.SongService.GetSongs(ctx, params.Filter, params.Limit, params.Offset)
+	if err != nil {
+		http.Error(w, "Failed to retrieve songs", http.StatusInternalServerError)
+		return
+	}
+
+	// Успешно возвращаем список песен
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(songs); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
