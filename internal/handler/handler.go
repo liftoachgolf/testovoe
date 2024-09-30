@@ -38,6 +38,7 @@ func (h *Handler) InitRoutes() *mux.Router {
 			songs.HandleFunc("/", h.addSong).Methods(http.MethodGet)                 // Путь для добавления песни
 			songs.HandleFunc("/search", h.searchSong).Methods(http.MethodPost)       // Изменено на POST для поиска песни
 			songs.HandleFunc("/filter", h.getFilteredSongs).Methods(http.MethodPost) // получения песен с фильтрацией
+			songs.HandleFunc("/text", h.getTextWithPagination).Methods(http.MethodGet)
 		}
 
 		// Добавление маршрута для обработки callback

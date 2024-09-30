@@ -8,6 +8,7 @@ import (
 	"musPlayer/internal/logger"
 	"musPlayer/models"
 	postgresrepo "musPlayer/pkg/postgresRepo"
+	"strings"
 	"time"
 )
 
@@ -34,17 +35,58 @@ func (s *songService) AddSong(ctx context.Context, song postgresrepo.AddSongPara
 }
 
 // Получение текста песни с обработкой
-func (s *songService) GetSongText(ctx context.Context, songID int) (string, error) {
+func paginateText(text string, pageSize int) []string {
+	words := strings.Split(text, " ")
+	var pages []string
+	var page string
+
+	for _, word := range words {
+		if len(page)+len(word)+1 > pageSize {
+			pages = append(pages, page)
+			page = ""
+		}
+		if page != "" {
+			page += " "
+		}
+		page += word
+	}
+
+	if page != "" {
+		pages = append(pages, page)
+	}
+
+	return pages
+}
+
+// Модифицированный метод GetSongText с поддержкой пагинации
+// Модифицированный метод GetSongText с заменой \n на реальные переносы строк
+func (s *songService) GetSongText(ctx context.Context, songID, pageSize, pageNumber int) (string, error) {
 	startTime := time.Now()
 
+	// Получаем текст песни
 	songText, err := s.repo.GetSongText(ctx, songID)
 	if err != nil {
 		logger.Logger.Error("Error retrieving song text: ", err)
 		return "", err
 	}
 
+	// Заменяем символы \n на реальные переносы строк
+	if songText != "" {
+		// Заменяем все вхождения "\n" на настоящие переносы строк
+		songText = strings.ReplaceAll(songText, "\\n", "\n")
+	}
+
+	// Пагинация текста
+	pages := paginateText(songText, pageSize)
+
+	// Проверяем, что номер страницы валиден
+	if pageNumber <= 0 || pageNumber > len(pages) {
+		return "", fmt.Errorf("Invalid page number")
+	}
+
+	// Возвращаем нужную страницу
 	logger.Logger.Infof("GetSongText executed successfully, execution time: %s", time.Since(startTime))
-	return songText, nil
+	return pages[pageNumber-1], nil
 }
 
 // Получение песен с фильтром и логированием
