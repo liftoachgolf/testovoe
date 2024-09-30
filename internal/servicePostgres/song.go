@@ -22,6 +22,7 @@ func NewSongService(repo postgresrepo.SongRepository) SongService {
 	}
 }
 func (s *songService) AddSong(ctx context.Context, song postgresrepo.AddSongParams) (int, error) {
+	logger.Logger.Debugf("Adding song: %+v", song)
 	startTime := time.Now()
 
 	id, err := s.repo.AddSong(ctx, song)
@@ -58,11 +59,9 @@ func paginateText(text string, pageSize int) []string {
 	return pages
 }
 
-// Модифицированный метод GetSongText с поддержкой пагинации
-// Модифицированный метод GetSongText с заменой \n на реальные переносы строк
 func (s *songService) GetSongText(ctx context.Context, songID, pageSize, pageNumber int) (string, error) {
 	startTime := time.Now()
-
+	logger.Logger.Debugf("Fetching song text for ID: %d, pageSize: %d, pageNumber: %d", songID, pageSize, pageNumber)
 	// Получаем текст песни
 	songText, err := s.repo.GetSongText(ctx, songID)
 	if err != nil {
@@ -70,21 +69,14 @@ func (s *songService) GetSongText(ctx context.Context, songID, pageSize, pageNum
 		return "", err
 	}
 
-	// Заменяем символы \n на реальные переносы строк
 	if songText != "" {
-		// Заменяем все вхождения "\n" на настоящие переносы строк
 		songText = strings.ReplaceAll(songText, "\\n", "\n")
 	}
-
-	// Пагинация текста
 	pages := paginateText(songText, pageSize)
 
-	// Проверяем, что номер страницы валиден
 	if pageNumber <= 0 || pageNumber > len(pages) {
 		return "", fmt.Errorf("Invalid page number")
 	}
-
-	// Возвращаем нужную страницу
 	logger.Logger.Infof("GetSongText executed successfully, execution time: %s", time.Since(startTime))
 	return pages[pageNumber-1], nil
 }
@@ -92,6 +84,7 @@ func (s *songService) GetSongText(ctx context.Context, songID, pageSize, pageNum
 // Получение песен с фильтром и логированием
 func (s *songService) GetSongs(ctx context.Context, filter string, limit, offset int) ([]models.Song, error) {
 	startTime := time.Now()
+	logger.Logger.Debugf("Retrieving songs with filter: %s, limit: %d, offset: %d", filter, limit, offset)
 
 	songs, err := s.repo.GetSongs(ctx, filter, limit, offset)
 	if err != nil {
@@ -106,6 +99,7 @@ func (s *songService) GetSongs(ctx context.Context, filter string, limit, offset
 // Удаление песни с логикой проверки
 func (s *songService) DeleteSong(ctx context.Context, songID int64) error {
 	startTime := time.Now()
+	logger.Logger.Debugf("Attempting to delete song with ID: %d", songID)
 
 	err := s.repo.DeleteSong(ctx, songID)
 	if err != nil {
@@ -124,6 +118,7 @@ func (s *songService) DeleteSong(ctx context.Context, songID int64) error {
 // Обновление песни с логикой проверки
 func (s *songService) UpdateSong(ctx context.Context, updSong models.SongUpdateParams) error {
 	startTime := time.Now()
+	logger.Logger.Debugf("Updating song with ID: %d, data: %+v", updSong.ID, updSong)
 
 	err := s.repo.UpdateSong(ctx, updSong)
 	if err != nil {

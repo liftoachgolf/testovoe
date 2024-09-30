@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"musPlayer/internal/logger"
 	"net/http"
 )
 
@@ -16,6 +17,7 @@ import (
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/songs [post]
 func (h *Handler) callbackHandler(w http.ResponseWriter, r *http.Request) {
+	logger.Logger.Debugf("Incoming request to callbackHandler with method: %s", r.Method)
 	code := r.URL.Query().Get("code")
 	if code == "" {
 		h.handleError(w, fmt.Errorf("code is missing"), http.StatusBadRequest, "Code is missing")
@@ -27,10 +29,11 @@ func (h *Handler) callbackHandler(w http.ResponseWriter, r *http.Request) {
 		h.handleError(w, err, http.StatusInternalServerError, "Failed to obtain access token")
 		return
 	}
+	logger.Logger.Debugf("Received code: %s", code)
 
 	// Вывод токена на экран
 	response := map[string]string{
 		"access_token": h.serviceGenius.AccessToken,
 	}
-	sendSuccessResponse(w, http.StatusOK, response) // Используем sendSuccessResponse
+	sendSuccessResponse(w, http.StatusOK, response)
 }

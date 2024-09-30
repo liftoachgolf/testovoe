@@ -22,6 +22,7 @@ type GeniusService struct {
 }
 
 func NewGeniusService(clientID, clientSecret, redirectURI string) *GeniusService {
+	logger.Logger.Debug("Initializing GeniusService with clientID: ", clientID)
 	return &GeniusService{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -31,6 +32,7 @@ func NewGeniusService(clientID, clientSecret, redirectURI string) *GeniusService
 
 // RedirectUser перенаправляет пользователя на страницу авторизации Genius
 func (g *GeniusService) RedirectUser(w http.ResponseWriter, r *http.Request) {
+	logger.Logger.Debug("Redirecting user for authorization")
 	if g.ClientID == "" || g.RedirectURI == "" {
 		http.Error(w, "Service is not configured properly", http.StatusInternalServerError)
 		return
@@ -40,12 +42,13 @@ func (g *GeniusService) RedirectUser(w http.ResponseWriter, r *http.Request) {
 		g.ClientID,
 		url.QueryEscape(g.RedirectURI),
 	)
-
+	logger.Logger.Debug("Redirecting to auth URL: ", authURL)
 	http.Redirect(w, r, authURL, http.StatusFound)
 }
 
-// GetAccessToken получает токен доступа
 func (g *GeniusService) GetAccessToken(code string) error {
+	logger.Logger.Debug("Requesting access token with code: ", code)
+
 	form := url.Values{
 		"code":          {code},
 		"client_id":     {g.ClientID},
@@ -56,7 +59,7 @@ func (g *GeniusService) GetAccessToken(code string) error {
 
 	resp, err := http.PostForm("https://api.genius.com/oauth/token", form)
 	if err != nil {
-		fmt.Printf("Failed to request access token: %v\n", err)
+		logger.Logger.Error("Failed to request access token: ", err)
 		return err
 	}
 	defer resp.Body.Close()
@@ -76,12 +79,13 @@ func (g *GeniusService) GetAccessToken(code string) error {
 	}
 
 	g.AccessToken = result.AccessToken
-	fmt.Println("Successfully obtained access token")
+	logger.Logger.Debug("Successfully obtained access token")
 	return nil
 }
 
 // SearchSong ищет песню по названию и заполняет структуру Song
 func (g *GeniusService) SearchSong(title, artist string) (*models.Song, error) {
+	logger.Logger.Debug("Searching for song with title: ", title, " and artist: ", artist)
 	query := url.QueryEscape(title)
 	if artist != "" {
 		query += " " + url.QueryEscape(artist)
@@ -198,6 +202,7 @@ func extractTextFromHTML(htmlBody string) (string, error) {
 
 // GetSongText получает текст песни по идентификатору песни
 func (g *GeniusService) GetSongText(url string) (string, error) {
+	logger.Logger.Debug("Fetching song text from URL: ", url)
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Authorization", "Bearer "+g.AccessToken)
 
