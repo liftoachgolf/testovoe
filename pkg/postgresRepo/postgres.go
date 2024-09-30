@@ -6,7 +6,7 @@ import (
 	"log"
 	"musPlayer/models"
 
-	_ "github.com/lib/pq" // импортируем pq драйвер для работы с PostgreSQL
+	_ "github.com/lib/pq"
 )
 
 func NewPostgresDb(dbConfig models.DatabaseConfig) (*sql.DB, error) {

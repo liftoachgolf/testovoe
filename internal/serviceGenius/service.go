@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"musPlayer/internal/logger"
 	"musPlayer/models"
 	"net/http"
 	"net/url"
@@ -62,7 +63,7 @@ func (g *GeniusService) GetAccessToken(code string) error {
 
 	if resp.StatusCode != http.StatusOK {
 		errMsg := fmt.Sprintf("failed to fetch access token: %s", resp.Status)
-		fmt.Println(errMsg)
+		logger.Logger.Error(errMsg)
 		return fmt.Errorf(errMsg)
 	}
 
@@ -70,7 +71,7 @@ func (g *GeniusService) GetAccessToken(code string) error {
 		AccessToken string `json:"access_token"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		fmt.Printf("Failed to decode access token response: %v\n", err)
+		logger.Logger.Error("Failed to decode access token response: ", err)
 		return err
 	}
 
@@ -93,6 +94,7 @@ func (g *GeniusService) SearchSong(title, artist string) (*models.Song, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		logger.Logger.Error("Failed to perform search: ", err)
 		return nil, fmt.Errorf("failed to perform search: %w", err)
 	}
 	defer resp.Body.Close()
@@ -118,6 +120,7 @@ func (g *GeniusService) SearchSong(title, artist string) (*models.Song, error) {
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		logger.Logger.Error("Failed to decode search response: ", err)
 		return nil, fmt.Errorf("failed to decode search response: %w", err)
 	}
 
@@ -145,7 +148,6 @@ func (g *GeniusService) SearchSong(title, artist string) (*models.Song, error) {
 	return song, nil
 }
 
-// extractTextFromHTML извлекает текст из HTML, учитывая атрибут data-lyrics-container
 func extractTextFromHTML(htmlBody string) (string, error) {
 	doc, err := html.Parse(strings.NewReader(htmlBody))
 	if err != nil {
@@ -156,23 +158,21 @@ func extractTextFromHTML(htmlBody string) (string, error) {
 	var found bool
 	var f func(*html.Node)
 	f = func(n *html.Node) {
-		// Проверка всех div на наличие нужного атрибута
 		if n.Type == html.ElementNode && n.Data == "div" {
 			for _, attr := range n.Attr {
 				if attr.Key == "data-lyrics-container" && attr.Val == "true" {
 					found = true
-					// Находим текст внутри нужного div
 					for c := n.FirstChild; c != nil; c = c.NextSibling {
 						if c.Type == html.TextNode {
-							line := strings.TrimSpace(c.Data) // Удаляем лишние пробелы
-							if line != "" {                   // Проверяем, что строка не пустая
-								text += line + "\n" // Добавляем текст
+							line := strings.TrimSpace(c.Data)
+							if line != "" {
+								text += line + "\n"
 							}
 						} else if c.Type == html.ElementNode && c.Data == "br" {
-							text += "\n" // Обрабатываем перенос строки
+							text += "\n"
 						}
 					}
-					return // Останавливаемся, как только нашли нужный div
+					return
 				}
 			}
 		}
@@ -182,7 +182,6 @@ func extractTextFromHTML(htmlBody string) (string, error) {
 	}
 	f(doc)
 
-	// Если текст не найден, добавляем отладочный вывод
 	if !found {
 		return "", fmt.Errorf("не удалось найти элемент с data-lyrics-container")
 	}
@@ -191,22 +190,21 @@ func extractTextFromHTML(htmlBody string) (string, error) {
 		return "", fmt.Errorf("не удалось извлечь текст из найденного элемента")
 	}
 
-	// Удаляем лишние пробелы и пустые строки
 	text = strings.TrimSpace(text)
-	text = strings.ReplaceAll(text, "\n\n", "\n") // Убираем двойные переносы
+	text = strings.ReplaceAll(text, "\n\n", "\n")
 
 	return text, nil
 }
 
 // GetSongText получает текст песни по идентификатору песни
 func (g *GeniusService) GetSongText(url string) (string, error) {
-	fmt.Print(url)
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Authorization", "Bearer "+g.AccessToken)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		logger.Logger.Error("Failed to perform song text request: ", err)
 		return "", fmt.Errorf("failed to perform song text request: %w", err)
 	}
 	defer resp.Body.Close()
@@ -217,11 +215,13 @@ func (g *GeniusService) GetSongText(url string) (string, error) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		logger.Logger.Error("Failed to read response body: ", err)
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	songText, err := extractTextFromHTML(string(body))
 	if err != nil {
+		logger.Logger.Error("Failed to extract song text: ", err)
 		return "", fmt.Errorf("failed to extract song text: %w", err)
 	}
 

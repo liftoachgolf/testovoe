@@ -5,7 +5,16 @@ import (
 	"net/http"
 )
 
-// Обработчик для callback
+// @Summary Добавить новую песню
+// @Description Добавляет новую песню в базу данных
+// @Tags songs
+// @Accept json
+// @Produce json
+// @Param song body SongRequest true "Данные о песне"
+// @Success 200 {object} models.Song
+// @Failure 400 {string} string "Invalid request body"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /api/songs [post]
 func (h *Handler) callbackHandler(w http.ResponseWriter, r *http.Request) {
 	code := r.URL.Query().Get("code")
 	if code == "" {

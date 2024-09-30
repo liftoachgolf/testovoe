@@ -8,7 +8,6 @@ import (
 	"musPlayer/internal/logger"
 	servicegenius "musPlayer/internal/serviceGenius"
 	"musPlayer/internal/servicePostgres"
-	"musPlayer/internal/spotifyService"
 	postgresrepo "musPlayer/pkg/postgresRepo"
 
 	"github.com/sirupsen/logrus"
@@ -34,8 +33,7 @@ func main() {
 
 	dbRepo := postgresrepo.NewRepository(db)
 	dbSrv := servicePostgres.NewServicePostgres(dbRepo)
-	_ = spotifyService.NewSpotifyService(cfg.SpotifyApi.ID, cfg.SpotifyApi.Secret, cfg.SpotifyApi.RedirectURI)
-	geniusSrv := servicegenius.NewGeniusService("FfBcmLXIRKkSUMIoNgjGZTQLIVt4EJhAuBiMCwrKa6oKPR0QRBjt6maOw5wQYB8e", "UB3CDuzus25Hf5sxF4qCaAaSti2YTsOUkLJTmxqqpsTPnugcWoQVh-tzVom38UO6Js8BuuG9dUNcPso32i1Xfw", "http://localhost:8000/callback")
+	geniusSrv := servicegenius.NewGeniusService(cfg.GeniusConfig.ID, cfg.GeniusConfig.Secret, cfg.GeniusConfig.RedirectURI)
 	handler := handler.NewHandler(dbSrv, geniusSrv)
 
 	srv := new(musplayer.Server)

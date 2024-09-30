@@ -73,7 +73,6 @@ func (r *songRepository) GetSongs(ctx context.Context, filter string, limit, off
 	return songs, nil
 }
 
-// Удаление песни
 func (r *songRepository) DeleteSong(ctx context.Context, songID int64) error {
 	query := `DELETE FROM songs WHERE id = $1`
 

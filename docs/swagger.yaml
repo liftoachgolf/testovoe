@@ -1,0 +1,254 @@
+definitions:
+  handler.FilterParams:
+    properties:
+      filter:
+        type: string
+      limit:
+        type: integer
+      offset:
+        type: integer
+    type: object
+  handler.GetSongUpdateParams:
+    properties:
+      group:
+        type: string
+      release_date:
+        type: string
+      song:
+        type: string
+      text:
+        type: string
+    type: object
+  handler.GetTextWithPaginationParams:
+    properties:
+      id:
+        type: integer
+      page:
+        type: integer
+      page_size:
+        type: integer
+    type: object
+  handler.SongRequest:
+    properties:
+      group:
+        type: string
+      song:
+        type: string
+    type: object
+  models.Song:
+    properties:
+      created_at:
+        type: string
+      group:
+        type: string
+      id:
+        type: integer
+      link:
+        type: string
+      release_date:
+        type: string
+      song:
+        type: string
+      text:
+        type: string
+      updated_at:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /api:
+    get:
+      description: Инициализирует маршруты для обработчиков
+      responses: {}
+      summary: Инициализация маршрутов
+      tags:
+      - routes
+  /api/songs:
+    post:
+      consumes:
+      - application/json
+      description: Добавляет новую песню в базу данных
+      parameters:
+      - description: Данные о песне
+        in: body
+        name: song
+        required: true
+        schema:
+          $ref: '#/definitions/handler.SongRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Song'
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Добавить новую песню
+      tags:
+      - songs
+  /api/songs/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет песню по идентификатору
+      parameters:
+      - description: Идентификатор песни
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Удалить песню
+      tags:
+      - songs
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные о песне по идентификатору
+      parameters:
+      - description: Идентификатор песни
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Данные для обновления
+        in: body
+        name: params
+        required: true
+        schema:
+          $ref: '#/definitions/handler.GetSongUpdateParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Song updated successfully
+          schema:
+            type: string
+        "400":
+          description: Invalid request payload
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Обновить данные о песне
+      tags:
+      - songs
+  /api/songs/filter:
+    post:
+      consumes:
+      - application/json
+      description: Получает песни, основываясь на заданных фильтрах
+      parameters:
+      - description: Параметры фильтрации
+        in: body
+        name: filter
+        required: true
+        schema:
+          $ref: '#/definitions/handler.FilterParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Song'
+            type: array
+        "400":
+          description: Invalid request payload
+          schema:
+            type: string
+        "500":
+          description: Failed to retrieve songs
+          schema:
+            type: string
+      summary: Получить отфильтрованные песни
+      tags:
+      - songs
+  /api/songs/search:
+    post:
+      consumes:
+      - application/json
+      description: Ищет песню по заголовку и исполнителю
+      parameters:
+      - description: Данные о песне
+        in: body
+        name: song
+        required: true
+        schema:
+          $ref: '#/definitions/handler.SongRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Song'
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "404":
+          description: Song not found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Найти песню
+      tags:
+      - songs
+  /api/songs/text:
+    post:
+      consumes:
+      - application/json
+      description: Получает текст песни по идентификатору с возможностью пагинации
+      parameters:
+      - description: Параметры запроса
+        in: body
+        name: params
+        required: true
+        schema:
+          $ref: '#/definitions/handler.GetTextWithPaginationParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Текст песни
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request payload
+          schema:
+            type: string
+        "500":
+          description: Failed to get text
+          schema:
+            type: string
+      summary: Получить текст песни с пагинацией
+      tags:
+      - songs
+swagger: "2.0"

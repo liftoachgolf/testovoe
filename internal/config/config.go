@@ -8,11 +8,11 @@ import (
 )
 
 type Config struct {
-	Database   models.DatabaseConfig
-	API        models.APIConfig
-	Logging    models.LoggingConfig
-	App        models.AppConfig
-	SpotifyApi models.SpotifyConfig
+	Database     models.DatabaseConfig
+	API          models.APIConfig
+	Logging      models.LoggingConfig
+	App          models.AppConfig
+	GeniusConfig models.GeniusConfig
 }
 
 func MustLoad() (*Config, error) {
@@ -39,13 +39,10 @@ func MustLoad() (*Config, error) {
 		App: models.AppConfig{
 			Port: os.Getenv("APP_PORT"),
 		},
-		SpotifyApi: models.SpotifyConfig{
+		GeniusConfig: models.GeniusConfig{
 			ID:          os.Getenv("CLIENT_ID"),
 			Secret:      os.Getenv("CLIENT_SECRET"),
 			RedirectURI: os.Getenv("REDIRECT_URI"),
-			AuthURL:     os.Getenv("AUTH_URL"),
-			TokenURL:    os.Getenv("TOKEN_URL"),
-			Scope:       os.Getenv("SCOPE"),
 		},
 	}
 
