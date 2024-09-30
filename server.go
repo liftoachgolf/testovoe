@@ -22,7 +22,7 @@ func (s *Server) Run(port string, handler http.Handler) error {
 	}
 
 	// Логируем, что сервер запущен
-	logger.Logger.Info("Server is running on port %s", port)
+	logger.Logger.Infof("Server is running on port %s", port)
 
 	// Запускаем сервер и возвращаем ошибку, если она произошла
 	return s.httpServer.ListenAndServe()

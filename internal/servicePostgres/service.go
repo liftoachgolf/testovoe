@@ -11,7 +11,7 @@ type SongService interface {
 	GetSongText(ctx context.Context, songID, pageSize, pageNumber int) (string, error)
 	GetSongs(ctx context.Context, filter string, limit, offset int) ([]models.Song, error)
 	DeleteSong(ctx context.Context, songID int64) error
-	UpdateSong(ctx context.Context, song models.Song) error
+	UpdateSong(ctx context.Context, updSong models.SongUpdateParams) error
 }
 
 type Service struct {

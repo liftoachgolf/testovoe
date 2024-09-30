@@ -95,12 +95,12 @@ func (r *songRepository) DeleteSong(ctx context.Context, songID int64) error {
 }
 
 // Обновление песни
-func (r *songRepository) UpdateSong(ctx context.Context, song models.Song) error {
+func (r *songRepository) UpdateSong(ctx context.Context, updSong models.SongUpdateParams) error {
 	query := `UPDATE songs 
               SET group_name = $1, song_name = $2, text = $3, release_date = $4
               WHERE id = $5`
 
-	result, err := r.db.ExecContext(ctx, query, song.GroupName, song.SongName, song.Text, song.ReleaseDate, song.ID)
+	result, err := r.db.ExecContext(ctx, query, updSong.GroupName, updSong.SongName, updSong.Text, updSong.ReleaseDate, updSong.ID)
 	if err != nil {
 		return err
 	}

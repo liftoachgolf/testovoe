@@ -39,7 +39,7 @@ func main() {
 	handler := handler.NewHandler(dbSrv, geniusSrv)
 
 	srv := new(musplayer.Server)
-	if err := srv.Run("8000", handler); err != nil {
+	if err := srv.Run(cfg.App.Port, handler); err != nil {
 		logrus.Panic("error while running server")
 	}
 }

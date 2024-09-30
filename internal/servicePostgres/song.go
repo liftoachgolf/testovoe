@@ -122,19 +122,19 @@ func (s *songService) DeleteSong(ctx context.Context, songID int64) error {
 }
 
 // Обновление песни с логикой проверки
-func (s *songService) UpdateSong(ctx context.Context, song models.Song) error {
+func (s *songService) UpdateSong(ctx context.Context, updSong models.SongUpdateParams) error {
 	startTime := time.Now()
 
-	err := s.repo.UpdateSong(ctx, song)
+	err := s.repo.UpdateSong(ctx, updSong)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			logger.Logger.Warnf("Song with ID %d not found", song.ID)
-			return fmt.Errorf("song with id %d not found", song.ID)
+			logger.Logger.Warnf("Song with ID %d not found", updSong.ID)
+			return fmt.Errorf("song with id %d not found", updSong.ID)
 		}
 		logger.Logger.Error("Error updating song: ", err)
 		return err
 	}
 
-	logger.Logger.Infof("UpdateSong executed successfully, song ID: %d updated, execution time: %s", song.ID, time.Since(startTime))
+	logger.Logger.Infof("UpdateSong executed successfully, song ID: %d updated, execution time: %s", updSong.ID, time.Since(startTime))
 	return nil
 }

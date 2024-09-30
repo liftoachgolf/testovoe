@@ -12,3 +12,11 @@ type Song struct {
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
+
+type SongUpdateParams struct {
+	ID          int    `json:"id"`
+	GroupName   string `json:"group"`
+	SongName    string `json:"song"`
+	ReleaseDate string `json:"release_date"`
+	Text        string `json:"text"`
+}

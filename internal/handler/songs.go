@@ -156,9 +156,13 @@ func (h *Handler) deleteSong(w http.ResponseWriter, r *http.Request) {
 	// Извлечение ID песни из параметров
 	vars := mux.Vars(r)
 	id := vars["id"]
-	idd, _ := strconv.Atoi(id)
+	idd, err := strconv.Atoi(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	// Вызов сервиса для удаления песни
-	err := h.services.DeleteSong(r.Context(), int64(idd))
+	err = h.services.DeleteSong(r.Context(), int64(idd))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -167,21 +171,38 @@ func (h *Handler) deleteSong(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent) // Успешное удаление
 }
 
+type GetSongUpdateParams struct {
+	GroupName   string `json:"group_name"`
+	SongName    string `json:"song_name"`
+	ReleaseDate string `json:"release_date"`
+	Text        string `json:"text"`
+}
+
 // Обработчик для обновления данных песни
 func (h *Handler) updateSong(w http.ResponseWriter, r *http.Request) {
-	// Извлечение ID песни из параметров
+
 	vars := mux.Vars(r)
 	id := vars["id"]
-
-	var song models.Song
-	if err := json.NewDecoder(r.Body).Decode(&song); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	idd, err := strconv.Atoi(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	song.ID = id // Устанавливаем ID для обновления
 
+	var params GetSongUpdateParams
+
+	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
 	// Вызов сервиса для обновления песни
-	if err := h.services.UpdateSong(r.Context(), song); err != nil {
+	if err := h.services.UpdateSong(r.Context(), models.SongUpdateParams{
+		GroupName:   params.GroupName,
+		SongName:    params.SongName,
+		ReleaseDate: params.ReleaseDate,
+		Text:        params.Text,
+		ID:          idd,
+	}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
